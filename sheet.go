@@ -12,6 +12,7 @@ import (
 
 // Sheet represents an spreadsheet.
 type Sheet struct {
+	Name   string
 	parent *XLSX
 	zFile  *zip.File
 }

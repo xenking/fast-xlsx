@@ -2,6 +2,7 @@ package xlsx
 
 import (
 	"archive/zip"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -70,11 +71,14 @@ func TestParseContentType(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if len(index.files) != 1 {
-				t.Fatalf("Unexpected len: %d. Expected 1", len(index.files))
+			if len(index.files) != 2 {
+				t.Fatalf("Unexpected len: %d. Expected 2", len(index.files))
 			}
 			if index.files[0] != "/xl/worksheets/sheet1.xml" {
 				t.Fatalf("Unexpected spreadsheet file: %s", index.files[0])
+			}
+			if index.files[1] != "/xl/worksheets/sheet2.xml" {
+				t.Fatalf("Unexpected spreadsheet file: %s", index.files[1])
 			}
 
 			if index.sharedStr != "/xl/sharedStrings.xml" {
@@ -111,11 +115,14 @@ func TestReadShared(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if len(index.files) != 1 {
+			if len(index.files) != 2 {
 				t.Fatalf("Unexpected len: %d. Expected 1", len(index.files))
 			}
 			if index.files[0] != "/xl/worksheets/sheet1.xml" {
 				t.Fatalf("Unexpected spreadsheet file: %s", index.files[0])
+			}
+			if index.files[1] != "/xl/worksheets/sheet2.xml" {
+				t.Fatalf("Unexpected spreadsheet file: %s", index.files[1])
 			}
 
 			if index.sharedStr != "/xl/sharedStrings.xml" {
@@ -138,5 +145,50 @@ func TestReadShared(t *testing.T) {
 
 			break
 		}
+	}
+}
+
+func TestReadFile(t *testing.T) {
+	file, err := Open(xlsxFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	expectedRows := map[string][][]string{
+		"sheet1": {
+			{"Date", "A", "B", "C", "D"},
+			{"43922", "1", "2", "3", "4"},
+			{"43923", "5", "6", "7", "8"},
+		},
+		"sheet2": {
+			{"A", "B", "C", "D"},
+			{"1", "2", "3", "4"},
+			{"5", "6", "7", "8"},
+		},
+	}
+
+	for _, sheet := range file.Sheets() {
+		expected := expectedRows[sheet.Name]
+
+		r, err := sheet.Open()
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		i := 0
+		for r.Next() {
+			for j, s := range r.Row() {
+				if s != expected[i][j] {
+					t.Fatalf("%s <> %s", s, expected[i][j])
+				}
+			}
+			i++
+		}
+		if r.Error() != nil {
+			t.Fatal(r.Error())
+		}
+
+		r.Close()
 	}
 }

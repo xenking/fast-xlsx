@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 
 	xml "github.com/dgrr/quickxml"
@@ -16,7 +17,7 @@ import (
 type XLSX struct {
 	sharedStrings []string
 	zr            *zip.Reader
-	Sheets        []*Sheet
+	sheets        []*Sheet
 	closer        io.Closer
 }
 
@@ -45,6 +46,16 @@ func (xlsx *XLSX) Close() error {
 	}
 
 	return nil
+}
+
+// Sheets returns the sheets.
+func (xlsx *XLSX) Sheets() []*Sheet {
+	return xlsx.sheets
+}
+
+// SharedStrings returns the shared strings.
+func (xlsx *XLSX) SharedStrings() []string {
+	return xlsx.sharedStrings
 }
 
 // Open just opens the file for reading.
@@ -174,7 +185,10 @@ func extractWorksheets(zr *zip.Reader, index *xlsxIndex) (*XLSX, error) {
 			return nil, err
 		}
 
-		xs.Sheets = append(xs.Sheets, &Sheet{
+		name := strings.Split(path.Base(filename), ".")[0]
+
+		xs.sheets = append(xs.sheets, &Sheet{
+			Name:   name,
 			parent: xs,
 			zFile:  zFile,
 		})

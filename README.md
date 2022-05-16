@@ -1,8 +1,8 @@
 # xlsx
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/dgrr/xlsx)](https://goreportcard.com/report/github.com/dgrr/xlsx)
-[![Build Status](https://travis-ci.com/dgrr/xlsx.svg?branch=master)](https://travis-ci.com/dgrr/xlsx)
-[![codecov](https://codecov.io/gh/dgrr/xlsx/branch/master/graph/badge.svg)](https://codecov.io/gh/dgrr/xlsx)
+[![Go Report Card](https://goreportcard.com/badge/github.com/xenking/fast-xlsx)](https://goreportcard.com/report/github.com/xenking/fast-xlsx)
+[![Build Status](https://travis-ci.com/xenking/fast-xlsx.svg?branch=master)](https://travis-ci.com/xenking/fast-xlsx)
+[![codecov](https://codecov.io/gh/xenking/fast-xlsx/branch/master/graph/badge.svg)](https://codecov.io/gh/xenking/fast-xlsx)
 
 Working with XLSX is most of the times a pain (is built with XML). This package aims to work with XLSX files to extract only the data inside. It doesn't manage styles or any other fancy feature. It supports shared strings (because it's not a fancy feature) and it is fast and easy to use.
 
@@ -14,7 +14,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/dgrr/xlsx"
+	"github.com/xenking/fast-xlsx"
 )
 
 func main() {
@@ -26,7 +26,9 @@ func main() {
 	defer ws.Close() // do not forget to close
 
 	// iterate over the sheets
-	for _, wb := range ws.Sheets {
+	for _, wb := range ws.Sheets() {
+		fmt.Println(wb.Name)
+		
 		r, err := wb.Open()
 		if err != nil {
 			log.Fatalln(err)

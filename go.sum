@@ -1,0 +1,4 @@
+github.com/dgrr/quickxml v0.0.0-20201022091424-4977de546d6c h1:oKR1rVrbYTNvwCdiz/4qP+z0lDHe5XMb0Bn7ijdPPak=
+github.com/dgrr/quickxml v0.0.0-20201022091424-4977de546d6c/go.mod h1:beyEemCEXTgeWAoLJWZxlgT2vtYIEwGWcjWkGA8OBSQ=
+github.com/dgrr/xlsx v0.0.0-20200421194320-736c914b29a7 h1:vhBjc6iSDZrn3xOo3MT7LY/xutjEmCViihTka2M8VSY=
+github.com/dgrr/xlsx v0.0.0-20200421194320-736c914b29a7/go.mod h1:SzOmyYupTYSbTeoabY1i3UUkfHeX88daprvQkF5y8k0=
