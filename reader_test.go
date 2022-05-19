@@ -156,12 +156,12 @@ func TestReadFile(t *testing.T) {
 	defer file.Close()
 
 	expectedRows := map[string][][]string{
-		"sheet1": {
+		"Sheet1": {
 			{"Date", "A", "B", "C", "D"},
 			{"43922", "1", "2", "3", "4"},
 			{"43923", "5", "6", "7", "8"},
 		},
-		"sheet2": {
+		"Sheet2": {
 			{"A", "B", "C", "D"},
 			{"1", "2", "3", "4"},
 			{"5", "6", "7", "8"},

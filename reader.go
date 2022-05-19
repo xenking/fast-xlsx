@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"strings"
 
 	xml "github.com/dgrr/quickxml"
@@ -76,30 +75,90 @@ func Open(filename string) (*XLSX, error) {
 // OpenReader opens the reader as XLSX file.
 func OpenReader(r io.ReaderAt, size int64) (*XLSX, error) {
 	zr, err := zip.NewReader(r, size)
-	if err == nil {
-		var xlsx *XLSX
-		for _, zFile := range zr.File {
-			// read where the worksheets are
-			if zFile.Name == "[Content_Types].xml" {
-				index, err := parseContentType(zFile)
-				if err != nil {
-					return nil, fmt.Errorf("parseContentType: %s", err)
-				}
-
-				// read the worksheets
-				xlsx, err = extractWorksheets(zr, &index)
-				if err == nil {
-					closer, ok := r.(io.Closer)
-					if ok {
-						xlsx.closer = closer
-					}
-				}
-			}
-		}
-		return xlsx, err
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, errors.New("rels file not found")
+	var (
+		xlsx  *XLSX
+		index xlsxIndex
+	)
+
+	sheetsName := make(map[string]string)
+
+	for _, zFile := range zr.File {
+		switch zFile.Name {
+		case "xl/workbook.xml":
+			sheetsName, err = parseWorkbook(zFile)
+			if err != nil {
+				return nil, fmt.Errorf("parseWorkbook: %s", err)
+			}
+
+		case "[Content_Types].xml":
+			// read where the worksheets are
+			index, err = parseContentType(zFile)
+			if err != nil {
+				return nil, fmt.Errorf("parseContentType: %s", err)
+			}
+		}
+	}
+
+	// read the worksheets
+	xlsx, err = extractWorksheets(zr, &index, sheetsName)
+	if err == nil {
+		closer, ok := r.(io.Closer)
+		if ok {
+			xlsx.closer = closer
+		}
+	}
+
+	return xlsx, err
+}
+
+func parseWorkbook(zFile *zip.File) (sheets map[string]string, err error) {
+	sheets = make(map[string]string)
+	var zfr io.ReadCloser
+
+	zfr, err = zFile.Open()
+	if err != nil {
+		return
+	}
+	defer zfr.Close()
+
+	r := xml.NewReader(zfr)
+	for err == nil && r.Next() {
+		switch e := r.Element().(type) {
+		case *xml.StartElement:
+			if !bytes.Equal(e.NameBytes(), sheetString) {
+				continue
+			}
+
+			var sheetID string
+			kv := e.Attrs().GetBytes(sheetIDString)
+			if kv == nil {
+				err = errors.New("sheetId parameter not found")
+			} else {
+				sheetID = kv.Value()
+			}
+
+			var name string
+			kv = e.Attrs().GetBytes(sheetNameString)
+			if kv == nil {
+				err = errors.New("name parameter not found")
+			} else {
+				name = kv.Value()
+			}
+
+			sheets[sheetID] = name
+		}
+	}
+	if err == nil {
+		if r.Error() != nil && r.Error() != io.EOF {
+			err = r.Error()
+		}
+	}
+
+	return
 }
 
 func getPartName(e *xml.StartElement) (partName string, err error) {
@@ -114,9 +173,7 @@ func getPartName(e *xml.StartElement) (partName string, err error) {
 }
 
 func parseContentType(zFile *zip.File) (index xlsxIndex, err error) {
-	var (
-		zfr io.ReadCloser
-	)
+	var zfr io.ReadCloser
 
 	zfr, err = zFile.Open()
 	if err != nil {
@@ -161,7 +218,7 @@ func parseContentType(zFile *zip.File) (index xlsxIndex, err error) {
 	return
 }
 
-func extractWorksheets(zr *zip.Reader, index *xlsxIndex) (*XLSX, error) {
+func extractWorksheets(zr *zip.Reader, index *xlsxIndex, sheetsName map[string]string) (*XLSX, error) {
 	var (
 		err    error
 		shared []string
@@ -185,10 +242,12 @@ func extractWorksheets(zr *zip.Reader, index *xlsxIndex) (*XLSX, error) {
 			return nil, err
 		}
 
-		name := strings.Split(path.Base(filename), ".")[0]
+		sheetIDStart := strings.LastIndex(filename, "sheet")
+		sheetIDEnd := strings.LastIndexByte(filename, '.')
+		sheetID := filename[sheetIDStart+5 : sheetIDEnd]
 
 		xs.sheets = append(xs.sheets, &Sheet{
-			Name:   name,
+			Name:   sheetsName[sheetID],
 			parent: xs,
 			zFile:  zFile,
 		})
